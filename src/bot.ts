@@ -40,21 +40,31 @@ export class Bot {
 
     this.io.on("connection", (socket:any) => {
       console.log("Cliente conectado");
+      socket.on("isAvailableOrNot",(data)=>{
+        if(this.userSocket==null){
+          this.io.to(data).emit("isAvailableOrNotResponse","yes");
+        }else{
+          this.io.to(data).emit("isAvailableOrNotResponse","no");
+        }
+      })
+    
+   
       try {
         socket.on("message", async (json: any, senderSocket:any) => {
-         let pakete=JSON.parse(json)
-          this.userSocket = pakete.id;
-          let bossMessage = await this.bot.telegram.sendMessage(
-            this.chatId,
-            pakete.message
-          );
-        });
-      } catch (error) {
+
+            let pakete=JSON.parse(json)
+            this.userSocket = pakete.id;
+            let bossMessage = await this.bot.telegram.sendMessage(
+              this.chatId,
+              pakete.message
+            );
+              });
+    }catch(error){
         console.log("chatVisitor error:", error);
       }
 
     });
-  }
+  
 
   public static getInstance(): Bot {
     if (!Bot.instance) {
