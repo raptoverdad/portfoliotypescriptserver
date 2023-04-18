@@ -37,25 +37,26 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Bot = void 0;
-var socket_io_1 = require("socket.io");
 var telegraf_1 = require("telegraf");
 var http = require('http');
 var config_1 = require("./config");
+var socket_io_1 = require("socket.io");
 var Bot = /** @class */ (function () {
     function Bot() {
         var _this = this;
         this.bot = new telegraf_1.Telegraf(config_1.CONFIG.TELEGRAM_TOKEN);
         this.key = config_1.CONFIG.SOCKET_KEY;
         this.chatId = "5893927006";
+        this.userSocket = null;
         this.iniciar();
         this.io = new socket_io_1.Server(http.createServer().listen(3000), {
             cors: {
                 origin: "*",
                 methods: ["GET", "POST"],
                 allowedHeaders: ["Access-Control-Allow-Origin"],
-                credentials: false
-            }
-        }); // Creamos un servidor de Socket.IO en el puerto 3000
+                credentials: false,
+            },
+        });
         this.io.use(function (sockete, next) { return __awaiter(_this, void 0, void 0, function () {
             var frontendKey;
             return __generator(this, function (_a) {
@@ -64,7 +65,7 @@ var Bot = /** @class */ (function () {
                     case 1:
                         frontendKey = _a.sent();
                         if (frontendKey !== this.key) {
-                            next(new Error('invalid key'));
+                            next(new Error("invalid key"));
                         }
                         else {
                             next();
@@ -73,29 +74,28 @@ var Bot = /** @class */ (function () {
                 }
             });
         }); });
-        //inicio socket
-        this.io.on('connection', function (socket) {
-            console.log('Cliente conectado');
-            socket.on('message', function (message) { return __awaiter(_this, void 0, void 0, function () {
-                var bossMessage, error_1;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0:
-                            _a.trys.push([0, 2, , 3]);
-                            return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, message)];
-                        case 1:
-                            bossMessage = _a.sent();
-                            return [3 /*break*/, 3];
-                        case 2:
-                            error_1 = _a.sent();
-                            console.log('chatVisitor error:', error_1);
-                            return [3 /*break*/, 3];
-                        case 3: return [2 /*return*/];
-                    }
-                });
-            }); });
+        this.io.on("connection", function (socket) {
+            console.log("Cliente conectado");
+            try {
+                socket.on("message", function (json, senderSocket) { return __awaiter(_this, void 0, void 0, function () {
+                    var pakete, bossMessage;
+                    return __generator(this, function (_a) {
+                        switch (_a.label) {
+                            case 0:
+                                pakete = JSON.parse(json);
+                                this.userSocket = pakete.id;
+                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, pakete.message)];
+                            case 1:
+                                bossMessage = _a.sent();
+                                return [2 /*return*/];
+                        }
+                    });
+                }); });
+            }
+            catch (error) {
+                console.log("chatVisitor error:", error);
+            }
         });
-        //fin sockets
     }
     Bot.getInstance = function () {
         if (!Bot.instance) {
@@ -109,15 +109,15 @@ var Bot = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        console.log('Bot listening');
-                        // Función que escucha los mensajes de la gente
+                        console.log("Bot listening");
                         this.bot.hears(/.*/, function (ctx) { return __awaiter(_this, void 0, void 0, function () {
+                            var message;
                             return __generator(this, function (_a) {
                                 try {
-                                    // Aquí iría el código para procesar los mensajes recibidos por el bot
-                                    // ...
-                                    // Enviamos el mensaje a través de Socket.IO
-                                    //this.io.emit('message', { chatId: chatId, message: message });
+                                    message = ctx.message.text;
+                                    if (this.userSocket) {
+                                        this.io.to(this.userSocket).emit("bossMessage", message);
+                                    }
                                 }
                                 catch (error) {
                                     console.log(error);
