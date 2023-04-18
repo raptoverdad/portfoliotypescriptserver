@@ -14,7 +14,14 @@ export class Bot {
     this.key=CONFIG.SOCKET_KEY
     this.chatId="5893927006"
     this.iniciar();
-    this.io = new Server(http.createServer().listen(3000)); // Creamos un servidor de Socket.IO en el puerto 3000
+    this.io = new Server(http.createServer().listen(3000),{
+      cors:{
+          origin:"*",
+          methods:["GET","POST"],
+          allowedHeaders:["Access-Control-Allow-Origin"],
+          credentials:false
+      }
+  }); // Creamos un servidor de Socket.IO en el puerto 3000
     this.io.use(async (sockete, next) => {
       let frontendKey =await  sockete.handshake.query.key;
       if (frontendKey !== this.key) {
@@ -46,8 +53,9 @@ export class Bot {
   }
 
   private async iniciar(): Promise<void> {
-    // Función que escucha los mensajes de la gente
+
     console.log('Bot listening');
+        // Función que escucha los mensajes de la gente
     this.bot.hears(/.*/, async (ctx) => {
       try {
         // Aquí iría el código para procesar los mensajes recibidos por el bot
