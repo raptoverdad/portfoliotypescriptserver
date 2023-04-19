@@ -2,6 +2,7 @@ import { Telegraf, Context } from 'telegraf';
 const http = require('http');
 import {CONFIG} from './config'
 import { Server, Socket } from 'socket.io';
+
 export class Bot {
   private bot: Telegraf<Context>;
   private static instance: Bot;
@@ -14,7 +15,7 @@ export class Bot {
     this.bot = new Telegraf(CONFIG.TELEGRAM_TOKEN);
     this.key = CONFIG.SOCKET_KEY;
     this.chatId = "5893927006";
-    this.userSocket=null
+    this.userSocket = null;
     this.iniciar();
 
     this.io = new Server(
@@ -40,31 +41,30 @@ export class Bot {
 
     this.io.on("connection", (socket:any) => {
       console.log("Cliente conectado");
-      socket.on("isAvailableOrNot",(data)=>{
+      socket.on("isAvailableOrNot",(data:string)=>{
         if(this.userSocket==null){
           this.io.to(data).emit("isAvailableOrNotResponse","yes");
         }else{
           this.io.to(data).emit("isAvailableOrNotResponse","no");
         }
-      })
-    
-   
+      });
+
       try {
         socket.on("message", async (json: any, senderSocket:any) => {
 
-            let pakete=JSON.parse(json)
+            let pakete=JSON.parse(json);
             this.userSocket = pakete.id;
             let bossMessage = await this.bot.telegram.sendMessage(
               this.chatId,
               pakete.message
             );
               });
-    }catch(error){
+      }catch(error){
         console.log("chatVisitor error:", error);
       }
 
     });
-  
+  }
 
   public static getInstance(): Bot {
     if (!Bot.instance) {
