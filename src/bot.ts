@@ -41,6 +41,7 @@ export class Bot {
 
     this.io.on("connection", (socket:any) => {
       console.log("Cliente conectado");
+
       socket.on("isAvailableOrNot",(data:string)=>{
         if(this.userSocket==null){
           this.io.to(data).emit("isAvailableOrNotResponse","yes");
@@ -48,16 +49,29 @@ export class Bot {
           this.io.to(data).emit("isAvailableOrNotResponse","no");
         }
       });
+      //socket que vuelve la variable userSocket en null denuevo
+      socket.on("socketoff",(id:any)=>{
+         if(id==this.userSocket){
+          this.userSocket=null
+         }
+      })
 
       try {
         socket.on("message", async (json: any, senderSocket:any) => {
 
             let pakete=JSON.parse(json);
-            this.userSocket = pakete.id;
-            let bossMessage = await this.bot.telegram.sendMessage(
-              this.chatId,
-              pakete.message
-            );
+            if(this.userSocket==null){
+              this.userSocket = pakete.id;
+              let bossMessage = await this.bot.telegram.sendMessage(
+                this.chatId,
+                pakete.message
+              );
+              this.io.sockets.emit("isAvailableOrNotResponse", "no")
+            }else{
+              this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
+            }
+            
+          
               });
       }catch(error){
         console.log("chatVisitor error:", error);

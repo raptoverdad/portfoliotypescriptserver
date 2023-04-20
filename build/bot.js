@@ -76,6 +76,20 @@ var Bot = /** @class */ (function () {
         }); });
         this.io.on("connection", function (socket) {
             console.log("Cliente conectado");
+            socket.on("isAvailableOrNot", function (data) {
+                if (_this.userSocket == null) {
+                    _this.io.to(data).emit("isAvailableOrNotResponse", "yes");
+                }
+                else {
+                    _this.io.to(data).emit("isAvailableOrNotResponse", "no");
+                }
+            });
+            //socket que vuelve la variable userSocket en null denuevo
+            socket.on("socketoff", function (id) {
+                if (id == _this.userSocket) {
+                    _this.userSocket = null;
+                }
+            });
             try {
                 socket.on("message", function (json, senderSocket) { return __awaiter(_this, void 0, void 0, function () {
                     var pakete, bossMessage;
@@ -83,11 +97,17 @@ var Bot = /** @class */ (function () {
                         switch (_a.label) {
                             case 0:
                                 pakete = JSON.parse(json);
+                                if (!(this.userSocket == null)) return [3 /*break*/, 2];
                                 this.userSocket = pakete.id;
                                 return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, pakete.message)];
                             case 1:
                                 bossMessage = _a.sent();
-                                return [2 /*return*/];
+                                this.io.sockets.emit("isAvailableOrNotResponse", "no");
+                                return [3 /*break*/, 3];
+                            case 2:
+                                this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
+                                _a.label = 3;
+                            case 3: return [2 /*return*/];
                         }
                     });
                 }); });
