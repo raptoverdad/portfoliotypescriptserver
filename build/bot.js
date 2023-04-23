@@ -86,23 +86,24 @@ var Bot = /** @class */ (function () {
             });
             //socket que vuelve la variable userSocket en null denuevo
             socket.on("socketoff", function (id) {
+                console.log("el socket con id ", id, " se fue");
                 if (id == _this.userSocket) {
                     _this.userSocket = null;
                 }
             });
             try {
                 socket.on("message", function (json, senderSocket) { return __awaiter(_this, void 0, void 0, function () {
-                    var pakete, bossMessage;
+                    var pakete, id, bossMessage;
                     return __generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
                                 pakete = JSON.parse(json);
+                                id = pakete.id;
                                 if (!(this.userSocket == null)) return [3 /*break*/, 2];
-                                this.userSocket = pakete.id;
-                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, pakete.message)];
+                                this.userSocket = id;
+                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "id: " + id + " mensaje: " + pakete.message)];
                             case 1:
                                 bossMessage = _a.sent();
-                                this.io.sockets.emit("isAvailableOrNotResponse", "no");
                                 return [3 /*break*/, 3];
                             case 2:
                                 this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
@@ -130,19 +131,76 @@ var Bot = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         console.log("Bot listening");
-                        this.bot.hears(/.*/, function (ctx) { return __awaiter(_this, void 0, void 0, function () {
-                            var message;
+                        this.bot.hears(/^(?!.*(?:leavechat|chatinfo)).+$/, function (ctx) { return __awaiter(_this, void 0, void 0, function () {
+                            var message, nullMessage, error_1, errorMessage;
                             return __generator(this, function (_a) {
-                                try {
-                                    message = ctx.message.text;
-                                    if (this.userSocket) {
+                                switch (_a.label) {
+                                    case 0:
+                                        _a.trys.push([0, 4, , 6]);
+                                        message = ctx.message.text;
+                                        if (!this.userSocket) return [3 /*break*/, 1];
                                         this.io.to(this.userSocket).emit("bossMessage", message);
-                                    }
+                                        return [3 /*break*/, 3];
+                                    case 1:
+                                        if (!(this.userSocket == null)) return [3 /*break*/, 3];
+                                        return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "SERVER: SOCKET IS NULL TYPE")];
+                                    case 2:
+                                        nullMessage = _a.sent();
+                                        _a.label = 3;
+                                    case 3: return [3 /*break*/, 6];
+                                    case 4:
+                                        error_1 = _a.sent();
+                                        console.log(error_1);
+                                        return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "SERVER: THE SOCKET YOU ARE TRYING TO TALK TO DOESN'T EXIST")];
+                                    case 5:
+                                        errorMessage = _a.sent();
+                                        return [3 /*break*/, 6];
+                                    case 6: return [2 /*return*/];
                                 }
-                                catch (error) {
-                                    console.log(error);
+                            });
+                        }); });
+                        this.bot.hears("leavechat", function () { return __awaiter(_this, void 0, void 0, function () {
+                            var leaveChatMessage;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        if (!this.userSocket) return [3 /*break*/, 3];
+                                        return [4 /*yield*/, this.io.to(this.userSocket).emit("bossOut")];
+                                    case 1:
+                                        _a.sent();
+                                        this.userSocket = null;
+                                        return [4 /*yield*/, this.io.sockets.emit("isAvailableOrNotResponse", "yes")];
+                                    case 2:
+                                        _a.sent();
+                                        return [3 /*break*/, 5];
+                                    case 3:
+                                        if (!(this.userSocket == null)) return [3 /*break*/, 5];
+                                        return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "SERVER: NO SOCKET IS CONNECTED")];
+                                    case 4:
+                                        leaveChatMessage = _a.sent();
+                                        _a.label = 5;
+                                    case 5: return [2 /*return*/];
                                 }
-                                return [2 /*return*/];
+                            });
+                        }); });
+                        this.bot.hears("chatinfo", function () { return __awaiter(_this, void 0, void 0, function () {
+                            var infoMessage, infoMessage;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        if (!(this.userSocket != null)) return [3 /*break*/, 2];
+                                        return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "SERVER: THE SOCKET IS " + this.userSocket)];
+                                    case 1:
+                                        infoMessage = _a.sent();
+                                        return [3 /*break*/, 4];
+                                    case 2:
+                                        if (!(this.userSocket == null)) return [3 /*break*/, 4];
+                                        return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "SERVER: THE SOCKET IS NULL")];
+                                    case 3:
+                                        infoMessage = _a.sent();
+                                        _a.label = 4;
+                                    case 4: return [2 /*return*/];
+                                }
                             });
                         }); });
                         return [4 /*yield*/, this.bot.launch()];

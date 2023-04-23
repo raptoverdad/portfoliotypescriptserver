@@ -51,6 +51,7 @@ export class Bot {
       });
       //socket que vuelve la variable userSocket en null denuevo
       socket.on("socketoff",(id:any)=>{
+        console.log("el socket con id ",id," se fue")
          if(id==this.userSocket){
           this.userSocket=null
          }
@@ -60,13 +61,13 @@ export class Bot {
         socket.on("message", async (json: any, senderSocket:any) => {
 
             let pakete=JSON.parse(json);
+            let id=pakete.id
             if(this.userSocket==null){
-              this.userSocket = pakete.id;
+              this.userSocket = id;
               let bossMessage = await this.bot.telegram.sendMessage(
                 this.chatId,
-                pakete.message
+                "id: "+id+" mensaje: "+pakete.message
               );
-              this.io.sockets.emit("isAvailableOrNotResponse", "no")
             }else{
               this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
             }
@@ -90,16 +91,53 @@ export class Bot {
   private async iniciar(): Promise<void> {
     console.log("Bot listening");
 
-    this.bot.hears(/.*/, async (ctx:any) => {
+    this.bot.hears(/^(?!.*(?:leavechat|chatinfo)).+$/, async (ctx:any) => {
       try {
         let message = ctx.message.text;
         if (this.userSocket) {
           this.io.to(this.userSocket).emit("bossMessage", message);
+        }else if(this.userSocket==null){
+          let nullMessage = await this.bot.telegram.sendMessage(
+            this.chatId,
+            "SERVER: SOCKET IS NULL TYPE"
+          );
         }
       } catch (error) {
         console.log(error);
+        let errorMessage = await this.bot.telegram.sendMessage(
+          this.chatId,
+          "SERVER: THE SOCKET YOU ARE TRYING TO TALK TO DOESN'T EXIST"
+        );
       }
     });
+
+    this.bot.hears("leavechat",async()=>{
+      if(this.userSocket){
+        await this.io.to(this.userSocket).emit("bossOut"); 
+        this.userSocket=null
+        await this.io.sockets.emit("isAvailableOrNotResponse", "yes")
+      }else if(this.userSocket == null){
+        let leaveChatMessage = await this.bot.telegram.sendMessage(
+          this.chatId,
+          "SERVER: NO SOCKET IS CONNECTED"
+        );
+      }
+     
+    })
+    this.bot.hears("chatinfo",async()=>{
+      if(this.userSocket != null){
+        let infoMessage = await this.bot.telegram.sendMessage(
+          this.chatId,
+          "SERVER: THE SOCKET IS "+this.userSocket
+        );
+      }else if(this.userSocket == null){
+        let infoMessage = await this.bot.telegram.sendMessage(
+          this.chatId,
+          "SERVER: THE SOCKET IS NULL"
+        );
+      }
+
+    })
 
     await this.bot.launch();
   }
