@@ -53,7 +53,6 @@ var Bot = /** @class */ (function () {
             cors: {
                 origin: "*",
                 methods: ["GET", "POST"],
-                allowedHeaders: ["Access-Control-Allow-Origin"],
                 credentials: false,
             },
         });
@@ -65,7 +64,7 @@ var Bot = /** @class */ (function () {
                     case 1:
                         frontendKey = _a.sent();
                         if (frontendKey !== this.key) {
-                            next(new Error("invalid key"));
+                            throw new Error("invalid socket connection");
                         }
                         else {
                             next();
@@ -93,22 +92,32 @@ var Bot = /** @class */ (function () {
             });
             try {
                 socket.on("message", function (json, senderSocket) { return __awaiter(_this, void 0, void 0, function () {
-                    var pakete, id, bossMessage;
+                    var pakete, id, message, bossMessage, bossMessage;
                     return __generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
                                 pakete = JSON.parse(json);
                                 id = pakete.id;
+                                message = pakete.message;
                                 if (!(this.userSocket == null)) return [3 /*break*/, 2];
                                 this.userSocket = id;
-                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "id: " + id + " mensaje: " + pakete.message)];
+                                this.io.to(id).emit("joined");
+                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "id: " + id + " mensaje: " + message)];
                             case 1:
                                 bossMessage = _a.sent();
-                                return [3 /*break*/, 3];
+                                return [3 /*break*/, 5];
                             case 2:
-                                this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
-                                _a.label = 3;
-                            case 3: return [2 /*return*/];
+                                if (!(id == this.userSocket)) return [3 /*break*/, 4];
+                                return [4 /*yield*/, this.bot.telegram.sendMessage(this.chatId, "id: " + id + " mensaje: " + message)];
+                            case 3:
+                                bossMessage = _a.sent();
+                                return [3 /*break*/, 5];
+                            case 4:
+                                if (this.userSocket != null) {
+                                    this.io.to(id).emit("isAvailableOrNotResponse", "no");
+                                }
+                                _a.label = 5;
+                            case 5: return [2 /*return*/];
                         }
                     });
                 }); });

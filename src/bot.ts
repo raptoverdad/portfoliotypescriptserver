@@ -24,7 +24,6 @@ export class Bot {
         cors: {
           origin: "*",
           methods: ["GET", "POST"],
-          allowedHeaders: ["Access-Control-Allow-Origin"],
           credentials: false,
         },
       }
@@ -33,7 +32,7 @@ export class Bot {
     this.io.use(async (sockete:any, next:any) => {
       let frontendKey = await sockete.handshake.query.key;
       if (frontendKey !== this.key) {
-        next(new Error("invalid key"));
+        throw new Error("invalid socket connection")
       } else {
         next();
       }
@@ -58,18 +57,18 @@ export class Bot {
       })
 
       try {
-        socket.on("message", async (json: any, senderSocket:any) => {
-
+        socket.on("message", async (json: any, senderSocket:any) => {           
             let pakete=JSON.parse(json);
             let id=pakete.id
+            let message=pakete.message
             if(this.userSocket==null){
               this.userSocket = id;
-              let bossMessage = await this.bot.telegram.sendMessage(
-                this.chatId,
-                "id: "+id+" mensaje: "+pakete.message
-              );
-            }else{
-              this.io.to(pakete.id).emit("isAvailableOrNotResponse", "no");
+              this.io.to(id).emit("joined");
+              let bossMessage = await this.bot.telegram.sendMessage(this.chatId,"id: "+id+" mensaje: "+message);
+            }else if(id==this.userSocket){   
+              let bossMessage = await this.bot.telegram.sendMessage(this.chatId,"id: "+id+" mensaje: "+message)    
+            }else if(this.userSocket!=null){
+              this.io.to(id).emit("isAvailableOrNotResponse", "no");
             }
             
           
